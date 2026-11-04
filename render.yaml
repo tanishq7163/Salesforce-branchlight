@@ -1,0 +1,67 @@
+services:
+  - type: web
+    name: branchlight-api-sandbox
+    runtime: docker
+    dockerfilePath: ./infra/Dockerfile
+    dockerContext: .
+    plan: 0.5c-512mb
+    autoDeployTrigger: 'off'
+    healthCheckPath: /api/health
+    preDeployCommand: node server/database/migrate.ts
+    envVars:
+      - fromGroup: branchlight-sandbox
+      - key: DATABASE_URL
+        fromDatabase:
+          name: branchlight-sandbox-db
+          property: connectionString
+      - key: BRANCHLIGHT_PUBLIC_API_URL
+        sync: false
+      - key: BRANCHLIGHT_ALLOWED_EXTENSION_IDS
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_APP_SLUG
+        sync: false
+      - key: SALESFORCE_CLIENT_ID
+        sync: false
+      - key: SALESFORCE_CLIENT_SECRET
+        sync: false
+  - type: worker
+    name: branchlight-maintenance-sandbox
+    runtime: docker
+    dockerfilePath: ./infra/Dockerfile
+    dockerContext: .
+    dockerCommand: node server/jobs/worker.ts
+    plan: 0.5c-512mb
+    autoDeployTrigger: 'off'
+    envVars:
+      - fromGroup: branchlight-sandbox
+      - key: DATABASE_URL
+        fromDatabase:
+          name: branchlight-sandbox-db
+          property: connectionString
+      - key: BRANCHLIGHT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: branchlight-api-sandbox
+          envVarKey: BRANCHLIGHT_PUBLIC_API_URL
+      - key: BRANCHLIGHT_ALLOWED_EXTENSION_IDS
+        fromService:
+          type: web
+          name: branchlight-api-sandbox
+          envVarKey: BRANCHLIGHT_ALLOWED_EXTENSION_IDS
+databases:
+  - name: branchlight-sandbox-db
+    plan: 0.1c-256mb
+    postgresMajorVersion: '17'
+    databaseName: branchlight
+    ipAllowList: []
+envVarGroups:
+  - name: branchlight-sandbox
+    envVars:
+      - key: BRANCHLIGHT_MODE
+        value: sandbox-demo
+      - key: BRANCHLIGHT_ENCRYPTION_KEY
+        generateValue: true

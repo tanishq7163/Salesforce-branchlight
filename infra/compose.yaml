@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: branchlight_owner
+      POSTGRES_DB: branchlight
+      POSTGRES_PASSWORD: ${BRANCHLIGHT_DEV_DATABASE_PASSWORD:?Run npm run setup:env first}
+    ports:
+      - '127.0.0.1:54329:5432'
+    volumes:
+      - branchlight-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U branchlight_owner -d branchlight']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  branchlight-postgres:
